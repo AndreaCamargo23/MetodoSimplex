@@ -1,7 +1,7 @@
 #Interfaz grafica principal- GUI
 
 import tkinter as tk
-from tkinter import Variable, ttk
+from tkinter import Variable, ttk, messagebox
 
 
 #Crear la ventana
@@ -14,6 +14,7 @@ datos = ['Metodo Gráfico', 'Simplex Dos Fases']
 signo=['<=','>=','=']
 tipo=['Max','Min']
 vectorRestricciones=[]
+variableMetodo=0;
 
 #Variables de interface
 funcionObjetivo=[]
@@ -35,22 +36,25 @@ tipoEjercicio=ttk.Combobox(ventana,width=5,values=tipo)
 comboBoxSigno=[]
 
 
+
 #Eventos
 def evento_click():
-    #Eliminar componentes de la vista
-    eliminar_componente(lblMetodo1)
-    eliminar_componente(lblMetodo2)
-    eliminar_componente(lblMetodo)
-    eliminar_componente(lblRestricciones)
-    eliminar_componente(lblVaribles)
-    eliminar_componente(txtRestricciones)
-    eliminar_componente(txtVariables)
-    eliminar_componente(comboBox)
-    eliminar_componente(botonEnviar)
+    if(min_variables_restricciones() and (metodo_usar())!=0):
+        #Eliminar componentes de la vista
+        eliminar_componente(lblMetodo1)
+        eliminar_componente(lblMetodo2)
+        eliminar_componente(lblMetodo)
+        eliminar_componente(lblRestricciones)
+        eliminar_componente(lblVaribles)
+        eliminar_componente(txtRestricciones)
+        eliminar_componente(txtVariables)
+        eliminar_componente(comboBox)
+        eliminar_componente(botonEnviar)
 
-    #Generar la nueva vista de las restriciones
-    vista_funcion_objetivo()
-    vista_restricciones()
+        #Generar la nueva vista de las restriciones
+        vista_funcion_objetivo()
+        vista_restricciones()
+    
 
 def obtener_datos():
     print('Despejar ecuaciones')
@@ -89,7 +93,7 @@ def vista_funcion_objetivo():
     tipoEjercicio.grid(row=0,column=1)
     for i in range(0,int(cantidadVariables.get()),1):
         columna+=1
-        funcionObjetivo.insert(i,ttk.Entry(ventana,width=10, justify=tk.LEFT))
+        funcionObjetivo.insert(i,ttk.Entry(ventana,width=8, justify=tk.LEFT))
         funcionObjetivo[i].grid(row=0,column=columna+1);
         columna+=1
         if((int(cantidadVariables.get())-1)>i):
@@ -111,7 +115,7 @@ def vista_restricciones():
         for j in range(0,int(cantidadVariables.get()),1):
             mas+=1
             columna+=1
-            vectorRestricciones.insert(posicion,ttk.Entry(ventana,width=10, justify=tk.LEFT))
+            vectorRestricciones.insert(posicion,ttk.Entry(ventana,width=8, justify=tk.LEFT))
             vectorRestricciones[posicion].grid(row=i+2,column=columna);
             columna+=1
             print(mas)
@@ -132,6 +136,39 @@ def vista_restricciones():
         columna=0
     botonDatosFunciones.grid(row=int(cantidadRestricciones.get())+2,column=0)
 
+#Funciones de notificación
+def mensaje(i, mensaje):
+    if(i==0):
+        messagebox.showerror("Error",mensaje)
+    else:
+        messagebox.showinfo("Info",mensaje)
+
+#Funciones de validacion
+def min_variables_restricciones():
+    if(int(cantidadRestricciones.get())>=13 and int(cantidadVariables.get())>=10):
+        return True
+    else:
+        mensaje(0,"No cumple con los requisitos necesarios")
+        return False
+
+def metodo_usar():
+    if(str(comboBox.get())=='Metodo Gráfico'):
+        print("selecciono metodo grafico")
+        variableMetodo=1
+        return 1
+    elif (str(comboBox.get())=='Simplex Dos Fases'):
+        print("dos fases")
+        variableMetodo=2
+        return 2
+    else:
+        mensaje(0,"No selecciono el metodo")
+        return variableMetodo
+    
+def validar_funcion_objetivo():
+    #Yojhan
+
+def validar_restricciones():
+    #Yojhan
 
 #Tamaño de la ventana
 ventana.geometry('400x400');
