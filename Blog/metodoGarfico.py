@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import LineString
 
+
 #Ecuaciones e intervalos (Para tabular)
 x = np.arange(-100, 150, 50) #Permite dar valores a X en un rango dado
 
