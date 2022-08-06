@@ -1,5 +1,4 @@
 #Interfaz grafica principal- GUI
-
 import tkinter as tk
 from tkinter import Variable, ttk, messagebox, scrolledtext
 #Librerias para graficar
@@ -38,18 +37,20 @@ txtResultados=[]
 comboBox=ttk.Combobox(ventana,width=15,values=datos, textvariable=metodo)
 tipoEjercicio=ttk.Combobox(ventana,width=5,values=tipo)
 comboBoxSigno=[]
-textArea=scrolledtext.ScrolledText(ventana,width=30, height=10,wrap=tk.WORD)
+textArea=scrolledtext.ScrolledText(ventana,width=40, height=10,wrap=tk.WORD)
 
 
 #Variables para método grafico
 #Declaracion de x, y e intervalos
-x = np.arange(-10, 15, 5)
-y = np.arange(-10, 15, 5)
+x = np.arange(-100, 300, 50)
+y = np.arange(-100, 400, 50)
 funcionesDespejedas=[]
 lineasIdentificador=[]
 vectorInterseccion=[]
 puntosX=[]
 puntosY=[]
+datosX=[]
+datosY=[]
 FO_puntos=[]
 ZSolucion=0
 
@@ -79,15 +80,19 @@ def obtener_datos():
         matrixRestricciones=asignar_matriz_restricciones()
         despejar_ecuaciones(matrixRestricciones)
         graficar_punteada_funcion_objetivo()
-        print(determinar_intersecciones())
+        determinar_intersecciones()
+        generar_vector_colorear(matrixRestricciones)
         evaluar_puntos_funcion_objetivo()
         if(str(tipoEjercicio.get())=='Max'):
-            ZSolucion=max(FO_puntos)
-            pos=FO_puntos.index(ZSolucion)
-            generar_string(matrixRestricciones,ZSolucion,pos)
-            #plt.fill(puntosX, puntosY, color='silver')
+            if(len(FO_puntos)>0):
+                ZSolucion=max(FO_puntos)
+                pos=FO_puntos.index(ZSolucion)
+                generar_string(matrixRestricciones,ZSolucion,pos)
         elif(str(tipoEjercicio.get())=='Min'):
-            ZSolucion=min(set(FO_puntos))
+            if(len(FO_puntos)>0):
+                ZSolucion=min(FO_puntos)
+                pos=FO_puntos.index(ZSolucion)
+                generar_string(matrixRestricciones,ZSolucion,pos)
             #plt.fill(puntosX, puntosY, color='silver')
         configurarGrafico()
     
@@ -201,28 +206,44 @@ def validar_restricciones():
 #Funciones del metodo Graficando
 def asignar_matriz_restricciones():
     posicion=0
-    matrixRestricciones=np.zeros((int(cantidadRestricciones.get()),int(cantidadVariables.get())))
+    matrixRestricciones=np.zeros((int(cantidadRestricciones.get())+2,int(cantidadVariables.get())))
     for i in range(0,int(cantidadRestricciones.get()),1):
         for j in range(0,int(cantidadVariables.get()),1):
             #rint(vectorRestricciones[posicion].get())
-            matrixRestricciones[i][j]=int(vectorRestricciones[posicion].get())
-            posicion+=1
+                matrixRestricciones[i][j]=float(vectorRestricciones[posicion].get())
+                posicion+=1
+    matrixRestricciones[int(cantidadRestricciones.get())][0]=1
+    matrixRestricciones[int(cantidadRestricciones.get())][1]=0
+    matrixRestricciones[(int(cantidadRestricciones.get())+1)][0]=0
+    matrixRestricciones[int(cantidadRestricciones.get())+1][1]=1
     return matrixRestricciones
 
 def despejar_ecuaciones(matrizRestricciones):
     posicionColor=0
+    cero=0
+    txtResultados.insert(int(cantidadRestricciones.get()),0)
+    txtResultados.insert(int(cantidadRestricciones.get())+1,0)
     for i in range(0,int(cantidadRestricciones.get()),1):
         if(matrizRestricciones[i][1]==0):
-            funcionesDespejedas.insert(i,int(txtResultados[i].get())-matrizRestricciones[i][1]*y/matrizRestricciones[i][0])
+            
+            funcionesDespejedas.insert(i,(int(txtResultados[i].get())-matrizRestricciones[i][1]*y)/matrizRestricciones[i][0])
             lineasIdentificador.insert(i,LineString(np.column_stack((funcionesDespejedas[i], y))))
             plt.plot(funcionesDespejedas[i], y, '-', linewidth=2, color=colores[posicionColor])
         else:
-            funcionesDespejedas.insert(i,int(txtResultados[i].get())-matrizRestricciones[i][0]*x/matrizRestricciones[i][1])
+            print("Resultado "+str((int(txtResultados[i].get())-matrizRestricciones[i][0]*x)/matrizRestricciones[i][1]))
+            funcionesDespejedas.insert(i,(int(txtResultados[i].get())-matrizRestricciones[i][0]*x)/matrizRestricciones[i][1])
             lineasIdentificador.insert(i,LineString(np.column_stack((x, funcionesDespejedas[i]))))
             plt.plot(x, funcionesDespejedas[i], '-', linewidth=2, color=colores[posicionColor])
         posicionColor+=1
         if(posicionColor==7):
             posicionColor=0
+    funcionesDespejedas.insert(int(cantidadRestricciones.get()),(int(txtResultados[int(cantidadRestricciones.get())])-matrizRestricciones[int(cantidadRestricciones.get())][1]*y))
+    lineasIdentificador.insert(int(cantidadRestricciones.get()),LineString(np.column_stack((funcionesDespejedas[int(cantidadRestricciones.get())], y))))
+    plt.plot(funcionesDespejedas[int(cantidadRestricciones.get())], y, '-', linewidth=2, color='y')
+
+    funcionesDespejedas.insert(int(cantidadRestricciones.get())+1,(int(txtResultados[int(cantidadRestricciones.get())+1])-matrizRestricciones[int(cantidadRestricciones.get())+1][0]*x))
+    lineasIdentificador.insert(int(cantidadRestricciones.get())+1,LineString(np.column_stack((x,funcionesDespejedas[int(cantidadRestricciones.get())+1]))))
+    plt.plot(x,funcionesDespejedas[int(cantidadRestricciones.get())+1], '-', linewidth=2, color='m')
 
 def graficar_punteada_funcion_objetivo():
     #Despejar funcion objetivo
@@ -234,21 +255,44 @@ def determinar_intersecciones():
     posicion=0
     x1=0
     y1=0
-    for i in range(0,int(cantidadRestricciones.get()),1):
-        for j in range(0,int(cantidadRestricciones.get())-1,1):
+    for i in range(0,int(cantidadRestricciones.get())+2,1):
+        for j in range(0,(int(cantidadRestricciones.get())+1),1):
             if(j!=i):
                 if(lineasIdentificador[i].intersection(lineasIdentificador[j])!=set()):
                     vectorInterseccion.insert(posicion, lineasIdentificador[i].intersection(lineasIdentificador[j]))#GUARDAR PUNTO
                     plt.plot(*vectorInterseccion[posicion].xy, 'o', color='k') #Graficar punto
                     x1,y1=vectorInterseccion[posicion].xy#Extraer puntos
-                    puntosX.insert(i,np.float64(np.array(x1)))#Cambiar formato
-                    puntosY.insert(i,np.float64(np.array(y1)))
+                    if(np.array(x1).size > 0 and np.array(y1).size > 0):
+                        puntosX.insert(i,np.float64(np.array(x1)))#Cambiar formato
+                        puntosY.insert(i,np.float64(np.array(y1)))
                     posicion+=1
     #return vectorInterseccion
 
+def generar_vector_colorear(matrix):
+    cumple=0
+    for p in range(0,len(puntosX)):
+        cumple=0
+        for i in range(0,int(cantidadRestricciones.get())):
+            #Reemplazar en las restricciones para ver que el punto cumple con las caracteristicas
+            result=(matrix[i][0]*puntosX[p])+(matrix[i][1]*puntosY[p])
+            
+            if(str(comboBoxSigno[i].get())=='≤'):
+                if(int(result)<=int(txtResultados[i].get())):
+                    cumple+=1
+            elif(str(comboBoxSigno[i].get())=='≥'):
+                if(int(result)>=int(txtResultados[i].get())):
+                    cumple+=1
+            elif(str(comboBoxSigno[i].get())=='='):
+                if(int(result)==int(txtResultados[i].get())):
+                    cumple+=1
+        if(cumple==int(cantidadRestricciones.get())):
+            datosX.insert(p,puntosX[p])
+            datosY.insert(p,puntosY[p])
+    plt.fill(puntosX, puntosY, color='silver')
+
 def evaluar_puntos_funcion_objetivo():
-    for i in range(0,len(puntosX),1):
-        resultado=int(funcionObjetivo[0].get())*(puntosX[i])+int(funcionObjetivo[1].get())*(puntosY[i])
+    for i in range(0,len(datosX),1):
+        resultado=int(funcionObjetivo[0].get())*(datosX[i])+int(funcionObjetivo[1].get())*(datosY[i])
         FO_puntos.insert(i,resultado)
     #z01=-int(funcionObjetivo[0].get())*x/int(funcionObjetivo[1].get())
 
@@ -260,10 +304,13 @@ def generar_string(matrixRestricciones,ZSolucion,posi):
         texto+=str(matrixRestricciones[i][0])+"x1 + "+str(matrixRestricciones[i][1])+"x2 "+str(comboBoxSigno[i].get())+" "+str(txtResultados[i].get())+"\n"
     texto+="x1+x2 ≥ 0\n"
     #Obtener el punto
-    texto+="Mejor solucion:  \n"+str(funcionObjetivo[0].get())+"("+str(puntosX[posi])+") +"+str(funcionObjetivo[1].get())+" ("+str(puntosY[posi])+") = "+str(ZSolucion)
+    texto+="Mejor solucion:  \n"+str(funcionObjetivo[0].get())+"("+str(np.round(datosX[posi]))+") +"+str(funcionObjetivo[1].get())+" ("+str(np.round(datosY[posi]))+") = "+str(ZSolucion)
+    texto+="\nOtros puntos de intersección:\n"
+    for a in range(0,len(datosX),1):
+        if(a!=posi):
+            texto+="("+str(datosX[a])+"),"+"("+str(datosY[a])+")"+"\n"
     textArea.insert(tk.INSERT,texto)
     textArea.grid(row=int(cantidadRestricciones.get())+3,column=0)
-    print(texto)
     
 def configurarGrafico():
     plt.grid()
