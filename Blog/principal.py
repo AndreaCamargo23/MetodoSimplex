@@ -1,8 +1,11 @@
 #Interfaz grafica principal- GUI
 
 import tkinter as tk
-from tkinter import Variable, ttk, messagebox
-
+from tkinter import Variable, ttk, messagebox, scrolledtext
+#Librerias para graficar
+import matplotlib.pyplot as plt
+import numpy as np
+from shapely.geometry import LineString
 
 #Crear la ventana
 ventana = tk.Tk()
@@ -13,12 +16,13 @@ cantidadRestricciones=tk.StringVar(value='0')
 datos = ['Metodo Gráfico', 'Simplex Dos Fases']
 signo=['<=','>=','=']
 tipo=['Max','Min']
+colores=['b','g','r','c','m','y','k','w']
 vectorRestricciones=[]
-variableMetodo=0;
+metodo='';
 
 #Variables de interface
 funcionObjetivo=[]
-matrixRestricciones=[]
+matrixRestricciones=[[],[]]
 
 #Componentes vista
 lblMetodo1=tk.Label(ventana,text='')
@@ -31,11 +35,23 @@ txtVariables=ttk.Entry(ventana,width=10, justify=tk.LEFT, textvariable=cantidadV
 txtRestricciones=ttk.Entry(ventana,width=10, justify=tk.LEFT, textvariable=cantidadRestricciones)
 txtResultados=[]
 #ComboBox
-comboBox=ttk.Combobox(ventana,width=15,values=datos)
+comboBox=ttk.Combobox(ventana,width=15,values=datos, textvariable=metodo)
 tipoEjercicio=ttk.Combobox(ventana,width=5,values=tipo)
 comboBoxSigno=[]
+textArea=scrolledtext.ScrolledText(ventana,width=20, height=10,wrap=tk.WORD)
 
 
+#Variables para método grafico
+#Declaracion de x, y e intervalos
+x = np.arange(-10, 15, 5)
+y = np.arange(-10, 15, 5)
+funcionesDespejedas=[]
+lineasIdentificador=[]
+vectorInterseccion=[]
+puntosX=[]
+puntosY=[]
+FO_puntos=[]
+ZSolucion=0
 
 #Eventos
 def evento_click():
@@ -50,16 +66,28 @@ def evento_click():
         eliminar_componente(txtVariables)
         eliminar_componente(comboBox)
         eliminar_componente(botonEnviar)
-
         #Generar la nueva vista de las restriciones
         vista_funcion_objetivo()
         vista_restricciones()
     
 
 def obtener_datos():
-    print('Despejar ecuaciones')
-    print('Guardar en el nuevo')
-    print(funcionObjetivo[0].get())
+    #Validar datos
+    #Metodo
+    if(metodo_usar()):
+        #Solucionar metodo grafico
+        despejar_ecuaciones(asignar_matriz_restricciones())
+        graficar_punteada_funcion_objetivo()
+        print(determinar_intersecciones())
+        evaluar_puntos_funcion_objetivo()
+        if(str(tipoEjercicio.get())=='Max'):
+            ZSolucion=max(FO_puntos)
+            #plt.fill(puntosX, puntosY, color='silver')
+        elif(str(tipoEjercicio.get())=='Min'):
+            ZSolucion=min(FO_puntos)
+            #plt.fill(puntosX, puntosY, color='silver')
+        generar_string()
+        configurarGrafico()
     
 #Botonoes
 botonEnviar = ttk.Button(ventana,text='Aceptar',command=evento_click);
@@ -83,7 +111,7 @@ def componentes_principal():
 
 
 def eliminar_componente(componente):
-    componente.destroy()
+    componente.grid_forget()
 
 
 def vista_funcion_objetivo():
@@ -118,15 +146,12 @@ def vista_restricciones():
             vectorRestricciones.insert(posicion,ttk.Entry(ventana,width=8, justify=tk.LEFT))
             vectorRestricciones[posicion].grid(row=i+2,column=columna);
             columna+=1
-            print(mas)
             if(int(cantidadVariables.get())>mas):
                 lblRestricciones2=tk.Label(ventana,text='x'+str(j+1)+' +')
                 lblRestricciones2.grid(row=i+2,column=columna)
-                print('entro +')
             else:
                 lblRestricciones2=tk.Label(ventana,text='x'+str(j+1))
                 lblRestricciones2.grid(row=i+2,column=columna)
-                print('no entro')
             posicion+=1
         mas=0
         comboBoxSigno.insert(i, ttk.Combobox(ventana,width=5,values=signo))
@@ -145,19 +170,18 @@ def mensaje(i, mensaje):
 
 #Funciones de validacion
 def min_variables_restricciones():
-    if(int(cantidadRestricciones.get())>=13 and int(cantidadVariables.get())>=10):
+    ''' if(int(cantidadRestricciones.get())>=13 and int(cantidadVariables.get())>=10):
         return True
     else:
         mensaje(0,"No cumple con los requisitos necesarios")
-        return False
+        return False '''
+    return True
 
 def metodo_usar():
     if(str(comboBox.get())=='Metodo Gráfico'):
-        print("selecciono metodo grafico")
         variableMetodo=1
         return 1
     elif (str(comboBox.get())=='Simplex Dos Fases'):
-        print("dos fases")
         variableMetodo=2
         return 2
     else:
@@ -166,21 +190,83 @@ def metodo_usar():
     
 def validar_funcion_objetivo():
     #Yojhan
+    print("Falta implementar")
 
 def validar_restricciones():
     #Yojhan
+    print("Falta implementar")
+    
+#Funciones del metodo Graficando
+def asignar_matriz_restricciones():
+    posicion=0
+    matrixRestricciones=np.zeros((int(cantidadRestricciones.get()),int(cantidadVariables.get())))
+    for i in range(0,int(cantidadRestricciones.get()),1):
+        for j in range(0,int(cantidadVariables.get()),1):
+            #rint(vectorRestricciones[posicion].get())
+            matrixRestricciones[i][j]=int(vectorRestricciones[posicion].get())
+            posicion+=1
+    return matrixRestricciones
+
+def despejar_ecuaciones(matrizRestricciones):
+    posicionColor=0
+    for i in range(0,int(cantidadRestricciones.get()),1):
+        if(matrizRestricciones[i][1]==0):
+            funcionesDespejedas.insert(i,int(txtResultados[i].get())-matrizRestricciones[i][1]*y/matrizRestricciones[i][0])
+            lineasIdentificador.insert(i,LineString(np.column_stack((funcionesDespejedas[i], y))))
+            plt.plot(funcionesDespejedas[i], y, '-', linewidth=2, color=colores[posicionColor])
+        else:
+            funcionesDespejedas.insert(i,int(txtResultados[i].get())-matrizRestricciones[i][0]*x/matrizRestricciones[i][1])
+            lineasIdentificador.insert(i,LineString(np.column_stack((x, funcionesDespejedas[i]))))
+            plt.plot(x, funcionesDespejedas[i], '-', linewidth=2, color='b')
+        if(posicionColor==7):
+            posicionColor=0
+
+def graficar_punteada_funcion_objetivo():
+    #Despejar funcion objetivo
+    z=-int(funcionObjetivo[0].get())*x/int(funcionObjetivo[1].get())
+    plt.plot(x, z, ':', linewidth=1, color='k')
+    
+
+def determinar_intersecciones():
+    posicion=0
+    x1=0
+    y1=0
+    for i in range(0,int(cantidadRestricciones.get()),1):
+        for j in range(0,int(cantidadRestricciones.get())-1,1):
+            if(j!=i):
+                if(lineasIdentificador[i].intersection(lineasIdentificador[j])!=set()):
+                    vectorInterseccion.insert(posicion, lineasIdentificador[i].intersection(lineasIdentificador[j]))#GUARDAR PUNTO
+                    plt.plot(*vectorInterseccion[posicion].xy, 'o', color='k') #Graficar punto
+                    x1,y1=vectorInterseccion[posicion].xy#Extraer puntos
+                    puntosX.insert(i,np.float64(np.array(x1)))#Cambiar formato
+                    puntosY.insert(i,np.float64(np.array(y1)))
+                    posicion+=1
+    return vectorInterseccion
+
+def evaluar_puntos_funcion_objetivo():
+    for i in range(0,len(puntosX),1):
+        resultado=int(funcionObjetivo[0].get())*(puntosX[i])+int(funcionObjetivo[1].get())*(puntosY[i])
+        FO_puntos.insert(i,resultado)
+    #z01=-int(funcionObjetivo[0].get())*x/int(funcionObjetivo[1].get())
+
+def generar_string():
+    texto="";
+    texto+=str(tipoEjercicio.get())+" Z="+str(funcionObjetivo[0].get())+"x1+"+str(funcionObjetivo[1].get())+"x2"
+    print(texto)
+    
+def configurarGrafico():
+    plt.grid()
+    plt.xlabel('X1')
+    plt.ylabel('X2')
+    plt.title('Método Gráfico')
+    plt.show()
 
 #Tamaño de la ventana
 ventana.geometry('400x400');
 #Nombre de la ventana
 ventana.title('Ejercicio Simplex');
-
 componentes_principal()
 #Boton
 botonEnviar.grid(row=5,column=5)#Mostrar el boton
-
 #Abrir la ventana
 ventana.mainloop();
-
-
-
